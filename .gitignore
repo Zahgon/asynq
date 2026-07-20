@@ -25,3 +25,7 @@ vendor
 # Ignore editor config files
 .vscode
 .idea
+
+.aider*
+logs/
+vendor/
