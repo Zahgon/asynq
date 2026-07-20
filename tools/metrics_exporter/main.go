@@ -13,8 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// Declare command-line flags.
-// These variables are binded to flags in init().
 var (
 	flagRedisAddr     string
 	flagRedisDB       int
@@ -33,7 +31,7 @@ func init() {
 
 func main() {
 	flag.Parse()
-	// Using NewPedanticRegistry here to test the implementation of Collectors and Metrics.
+
 	reg := prometheus.NewPedanticRegistry()
 
 	inspector := asynq.NewInspector(asynq.RedisClientOpt{
@@ -45,7 +43,7 @@ func main() {
 
 	reg.MustRegister(
 		metrics.NewQueueMetricsCollector(inspector),
-		// Add the standard process and go metrics to the registry
+
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		collectors.NewGoCollector(),
 	)

@@ -1,17 +1,8 @@
-// Copyright 2020 Kentaro Hibino. All rights reserved.
-// Use of this source code is governed by a MIT license
-// that can be found in the LICENSE file.
-
 package cmd
 
 import (
-	"fmt"
-	"io"
-
 	"github.com/MakeNowJust/heredoc/v2"
-	"github.com/fatih/color"
 	"github.com/hibiken/asynq"
-	"github.com/hibiken/asynq/internal/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -49,8 +40,8 @@ var queueListCmd = &cobra.Command{
 var queueInspectCmd = &cobra.Command{
 	Use:   "inspect <queue> [<queue>...]",
 	Short: "Display detailed information on one or more queues",
-	Args: cobra.MinimumNArgs(1),
-	RunE: queueInspect,
+	Args:  cobra.MinimumNArgs(1),
+	RunE:  queueInspect,
 	Example: heredoc.Doc(`
 		$ asynq queue inspect myqueue
 		$ asynq queue inspect queue1 queue2 queue3`),
@@ -59,8 +50,8 @@ var queueInspectCmd = &cobra.Command{
 var queueHistoryCmd = &cobra.Command{
 	Use:   "history <queue> [<queue>...]",
 	Short: "Display historical aggregate data from one or more queues",
-	Args: cobra.MinimumNArgs(1),
-	RunE: queueHistory,
+	Args:  cobra.MinimumNArgs(1),
+	RunE:  queueHistory,
 	Example: heredoc.Doc(`
 		$ asynq queue history myqueue
 		$ asynq queue history queue1 queue2 queue3
@@ -100,194 +91,18 @@ var queueRemoveCmd = &cobra.Command{
 		$ asynq queue rm myqueue --force`),
 }
 
-func queueList(cmd *cobra.Command, args []string) error {
-	type queueInfo struct {
-		name    string
-		keyslot int64
-		nodes   []*asynq.ClusterNode
-	}
-	inspector := createInspector()
-	queues, err := inspector.Queues()
-	if err != nil {
-		return fmt.Errorf("could not fetch list of queues: %v", err)
-	}
-	var qs []*queueInfo
-	for _, qname := range queues {
-		q := queueInfo{name: qname}
-		if useRedisCluster {
-			keyslot, err := inspector.ClusterKeySlot(qname)
-			if err != nil {
-				fmt.Printf("error: could not get cluster keyslot for %q\n", qname)
-				continue
-			}
-			q.keyslot = keyslot
-			nodes, err := inspector.ClusterNodes(qname)
-			if err != nil {
-				fmt.Printf("error: could not get cluster nodes for %q\n", qname)
-				continue
-			}
-			q.nodes = nodes
-		}
-		qs = append(qs, &q)
-	}
-	if useRedisCluster {
-		printTable(
-			[]string{"Queue", "Cluster KeySlot", "Cluster Nodes"},
-			func(w io.Writer, tmpl string) {
-				for _, q := range qs {
-					fmt.Fprintf(w, tmpl, q.name, q.keyslot, q.nodes)
-				}
-			},
-		)
-	} else {
-		for _, q := range qs {
-			fmt.Println(q.name)
-		}
-	}
-	return nil
-}
+func queueList(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-func queueInspect(cmd *cobra.Command, args []string) error {
-	inspector := createInspector()
-	for i, qname := range args {
-		if i > 0 {
-			fmt.Printf("\n%s\n\n", separator)
-		}
-		info, err := inspector.GetQueueInfo(qname)
-		if err != nil {
-			fmt.Printf("error: %v\n", err)
-			continue
-		}
-		printQueueInfo(info)
-	}
-	return nil
-}
+func queueInspect(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-func printQueueInfo(info *asynq.QueueInfo) {
-	bold := color.New(color.Bold)
-	bold.Println("Queue Info")
-	fmt.Printf("Name:   %s\n", info.Queue)
-	fmt.Printf("Size:   %d\n", info.Size)
-	fmt.Printf("Groups: %d\n", info.Groups)
-	fmt.Printf("Paused: %t\n\n", info.Paused)
-	bold.Println("Task Count by State")
-	printTable(
-		[]string{"active", "pending", "aggregating", "scheduled", "retry", "archived", "completed"},
-		func(w io.Writer, tmpl string) {
-			fmt.Fprintf(w, tmpl, info.Active, info.Pending, info.Aggregating, info.Scheduled, info.Retry, info.Archived, info.Completed)
-		},
-	)
-	fmt.Println()
-	bold.Printf("Daily Stats %s UTC\n", info.Timestamp.UTC().Format("2006-01-02"))
-	printTable(
-		[]string{"processed", "failed", "error rate"},
-		func(w io.Writer, tmpl string) {
-			var errRate string
-			if info.Processed == 0 {
-				errRate = "N/A"
-			} else {
-				errRate = fmt.Sprintf("%.2f%%", float64(info.Failed)/float64(info.Processed)*100)
-			}
-			fmt.Fprintf(w, tmpl, info.Processed, info.Failed, errRate)
-		},
-	)
-}
+func printQueueInfo(info *asynq.QueueInfo) { _ = "STUB: not implemented"; return }
 
-func queueHistory(cmd *cobra.Command, args []string) error {
-	days, err := cmd.Flags().GetInt("days")
-	if err != nil {
-		return err
-	}
-	inspector := createInspector()
-	for i, qname := range args {
-		if i > 0 {
-			fmt.Printf("\n%s\n\n", separator)
-		}
-		fmt.Printf("Queue: %s\n\n", qname)
-		stats, err := inspector.History(qname, days)
-		if err != nil {
-			fmt.Printf("error: %v\n", err)
-			continue
-		}
-		printDailyStats(stats)
-	}
-	return nil
-}
+func queueHistory(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-func printDailyStats(stats []*asynq.DailyStats) {
-	printTable(
-		[]string{"date (UTC)", "processed", "failed", "error rate"},
-		func(w io.Writer, tmpl string) {
-			for _, s := range stats {
-				var errRate string
-				if s.Processed == 0 {
-					errRate = "N/A"
-				} else {
-					errRate = fmt.Sprintf("%.2f%%", float64(s.Failed)/float64(s.Processed)*100)
-				}
-				fmt.Fprintf(w, tmpl, s.Date.Format("2006-01-02"), s.Processed, s.Failed, errRate)
-			}
-		},
-	)
-}
+func printDailyStats(stats []*asynq.DailyStats) { _ = "STUB: not implemented"; return }
 
-func queuePause(cmd *cobra.Command, args []string) error {
-	inspector := createInspector()
-	var firstErr error
-	for _, qname := range args {
-		err := inspector.PauseQueue(qname)
-		if err != nil {
-			fmt.Println(err)
-			if firstErr == nil {
-				firstErr = err
-			}
-			continue
-		}
-		fmt.Printf("Successfully paused queue %q\n", qname)
-	}
-	return firstErr
-}
+func queuePause(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-func queueUnpause(cmd *cobra.Command, args []string) error {
-	inspector := createInspector()
-	var firstErr error
-	for _, qname := range args {
-		err := inspector.UnpauseQueue(qname)
-		if err != nil {
-			fmt.Println(err)
-			if firstErr == nil {
-				firstErr = err
-			}
-			continue
-		}
-		fmt.Printf("Successfully unpaused queue %q\n", qname)
-	}
-	return firstErr
-}
+func queueUnpause(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-func queueRemove(cmd *cobra.Command, args []string) error {
-	// TODO: Use inspector once RemoveQueue become public API.
-	force, err := cmd.Flags().GetBool("force")
-	if err != nil {
-		return err
-	}
-
-	r := createRDB()
-	var firstErr error
-	for _, qname := range args {
-		err = r.RemoveQueue(qname, force)
-		if err != nil {
-			if errors.IsQueueNotEmpty(err) {
-				fmt.Printf("error: %v\nIf you are sure you want to delete it, run 'asynq queue rm --force %s'\n", err, qname)
-			} else {
-				fmt.Printf("error: %v\n", err)
-			}
-			if firstErr == nil {
-				firstErr = err
-			}
-			continue
-		}
-		fmt.Printf("Successfully removed queue %q\n", qname)
-	}
-	return firstErr
-}
+func queueRemove(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }

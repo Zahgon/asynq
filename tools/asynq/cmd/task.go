@@ -1,16 +1,9 @@
-// Copyright 2020 Kentaro Hibino. All rights reserved.
-// Use of this source code is governed by a MIT license
-// that can be found in the LICENSE file.
-
 package cmd
 
 import (
-	"fmt"
-	"io"
 	"time"
 
 	"github.com/MakeNowJust/heredoc/v2"
-	"github.com/fatih/color"
 	"github.com/hibiken/asynq"
 	"github.com/spf13/cobra"
 )
@@ -55,8 +48,7 @@ func init() {
 	taskCmd.AddCommand(taskEnqueueCmd)
 	taskEnqueueCmd.Flags().StringP("type_name", "t", "", "type name to enqueue the task as (required)")
 	taskEnqueueCmd.Flags().StringP("payload", "l", "", "payload to enqueue (required)")
-	// The following are the various OptionTypes; if not specified we won't pass them so that composeOptions()
-	// can apply its own defaults
+
 	taskEnqueueCmd.Flags().Int("retry", 0, "maximum retries")
 	taskEnqueueCmd.Flags().String("queue", "", "queue to enqueue the task to")
 	taskEnqueueCmd.Flags().String("id", "", "id to enqueue the task as")
@@ -208,572 +200,65 @@ var taskRunAllCmd = &cobra.Command{
 		$ asynq task runall --queue=myqueue --state=aggregating --group=mygroup`),
 }
 
-func taskList(cmd *cobra.Command, args []string) error {
-	qname, err := cmd.Flags().GetString("queue")
-	if err != nil {
-		return err
-	}
-	state, err := cmd.Flags().GetString("state")
-	if err != nil {
-		return err
-	}
-	pageNum, err := cmd.Flags().GetInt("page")
-	if err != nil {
-		return err
-	}
-	pageSize, err := cmd.Flags().GetInt("size")
-	if err != nil {
-		return err
-	}
-
-	switch state {
-	case "active":
-		return listActiveTasks(qname, pageNum, pageSize)
-	case "pending":
-		return listPendingTasks(qname, pageNum, pageSize)
-	case "scheduled":
-		return listScheduledTasks(qname, pageNum, pageSize)
-	case "retry":
-		return listRetryTasks(qname, pageNum, pageSize)
-	case "archived":
-		return listArchivedTasks(qname, pageNum, pageSize)
-	case "completed":
-		return listCompletedTasks(qname, pageNum, pageSize)
-	case "aggregating":
-		group, err := cmd.Flags().GetString("group")
-		if err != nil {
-			return err
-		}
-		if group == "" {
-			return fmt.Errorf("flag --group is required for listing aggregating tasks")
-		}
-		return listAggregatingTasks(qname, group, pageNum, pageSize)
-	default:
-		return fmt.Errorf("state=%q is not supported", state)
-	}
-}
+func taskList(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
 func listActiveTasks(qname string, pageNum, pageSize int) error {
-	i := createInspector()
-	tasks, err := i.ListActiveTasks(qname, asynq.PageSize(pageSize), asynq.Page(pageNum))
-	if err != nil {
-		return err
-	}
-	if len(tasks) == 0 {
-		fmt.Printf("No active tasks in %q queue\n", qname)
-		return nil
-	}
-	printTable(
-		[]string{"ID", "Type", "Payload"},
-		func(w io.Writer, tmpl string) {
-			for _, t := range tasks {
-				fmt.Fprintf(w, tmpl, t.ID, t.Type, sprintBytes(t.Payload))
-			}
-		},
-	)
+	_ = "STUB: not implemented"
 	return nil
 }
 
 func listPendingTasks(qname string, pageNum, pageSize int) error {
-	i := createInspector()
-	tasks, err := i.ListPendingTasks(qname, asynq.PageSize(pageSize), asynq.Page(pageNum))
-	if err != nil {
-		return err
-	}
-	if len(tasks) == 0 {
-		fmt.Printf("No pending tasks in %q queue\n", qname)
-		return nil
-	}
-	printTable(
-		[]string{"ID", "Type", "Payload"},
-		func(w io.Writer, tmpl string) {
-			for _, t := range tasks {
-				fmt.Fprintf(w, tmpl, t.ID, t.Type, sprintBytes(t.Payload))
-			}
-		},
-	)
+	_ = "STUB: not implemented"
 	return nil
 }
 
 func listScheduledTasks(qname string, pageNum, pageSize int) error {
-	i := createInspector()
-	tasks, err := i.ListScheduledTasks(qname, asynq.PageSize(pageSize), asynq.Page(pageNum))
-	if err != nil {
-		return err
-	}
-	if len(tasks) == 0 {
-		fmt.Printf("No scheduled tasks in %q queue\n", qname)
-		return nil
-	}
-	printTable(
-		[]string{"ID", "Type", "Payload", "Process In"},
-		func(w io.Writer, tmpl string) {
-			for _, t := range tasks {
-				fmt.Fprintf(w, tmpl, t.ID, t.Type, sprintBytes(t.Payload), formatProcessAt(t.NextProcessAt))
-			}
-		},
-	)
+	_ = "STUB: not implemented"
 	return nil
 }
 
-// formatProcessAt formats next process at time to human friendly string.
-// If processAt time is in the past, returns "right now".
-// If processAt time is in the future, returns "in xxx" where xxx is the duration from now.
-func formatProcessAt(processAt time.Time) string {
-	d := processAt.Sub(time.Now())
-	if d < 0 {
-		return "right now"
-	}
-	return fmt.Sprintf("in %v", d.Round(time.Second))
-}
+func formatProcessAt(processAt time.Time) string { _ = "STUB: not implemented"; return "" }
 
 func listRetryTasks(qname string, pageNum, pageSize int) error {
-	i := createInspector()
-	tasks, err := i.ListRetryTasks(qname, asynq.PageSize(pageSize), asynq.Page(pageNum))
-	if err != nil {
-		return err
-	}
-	if len(tasks) == 0 {
-		fmt.Printf("No retry tasks in %q queue\n", qname)
-		return nil
-	}
-	printTable(
-		[]string{"ID", "Type", "Payload", "Next Retry", "Last Error", "Last Failed", "Retried", "Max Retry"},
-		func(w io.Writer, tmpl string) {
-			for _, t := range tasks {
-				fmt.Fprintf(w, tmpl, t.ID, t.Type, sprintBytes(t.Payload), formatProcessAt(t.NextProcessAt),
-					t.LastErr, formatPastTime(t.LastFailedAt), t.Retried, t.MaxRetry)
-			}
-		},
-	)
+	_ = "STUB: not implemented"
 	return nil
 }
 
 func listArchivedTasks(qname string, pageNum, pageSize int) error {
-	i := createInspector()
-	tasks, err := i.ListArchivedTasks(qname, asynq.PageSize(pageSize), asynq.Page(pageNum))
-	if err != nil {
-		return err
-	}
-	if len(tasks) == 0 {
-		fmt.Printf("No archived tasks in %q queue\n", qname)
-		return nil
-	}
-	printTable(
-		[]string{"ID", "Type", "Payload", "Last Failed", "Last Error"},
-		func(w io.Writer, tmpl string) {
-			for _, t := range tasks {
-				fmt.Fprintf(w, tmpl, t.ID, t.Type, sprintBytes(t.Payload), formatPastTime(t.LastFailedAt), t.LastErr)
-			}
-		})
+	_ = "STUB: not implemented"
 	return nil
 }
 
 func listCompletedTasks(qname string, pageNum, pageSize int) error {
-	i := createInspector()
-	tasks, err := i.ListCompletedTasks(qname, asynq.PageSize(pageSize), asynq.Page(pageNum))
-	if err != nil {
-		return err
-	}
-	if len(tasks) == 0 {
-		fmt.Printf("No completed tasks in %q queue\n", qname)
-		return nil
-	}
-	printTable(
-		[]string{"ID", "Type", "Payload", "CompletedAt", "Result"},
-		func(w io.Writer, tmpl string) {
-			for _, t := range tasks {
-				fmt.Fprintf(w, tmpl, t.ID, t.Type, sprintBytes(t.Payload), formatPastTime(t.CompletedAt), sprintBytes(t.Result))
-			}
-		})
+	_ = "STUB: not implemented"
 	return nil
 }
 
 func listAggregatingTasks(qname, group string, pageNum, pageSize int) error {
-	i := createInspector()
-	tasks, err := i.ListAggregatingTasks(qname, group, asynq.PageSize(pageSize), asynq.Page(pageNum))
-	if err != nil {
-		return err
-	}
-	if len(tasks) == 0 {
-		fmt.Printf("No aggregating tasks in group %q \n", group)
-		return nil
-	}
-	printTable(
-		[]string{"ID", "Type", "Payload", "Group"},
-		func(w io.Writer, tmpl string) {
-			for _, t := range tasks {
-				fmt.Fprintf(w, tmpl, t.ID, t.Type, sprintBytes(t.Payload), t.Group)
-			}
-		},
-	)
+	_ = "STUB: not implemented"
 	return nil
 }
 
-func taskCancel(cmd *cobra.Command, args []string) error {
-	i := createInspector()
-	var firstErr error
-	for _, id := range args {
-		if err := i.CancelProcessing(id); err != nil {
-			fmt.Printf("error: could not send cancelation signal: %v\n", err)
-			if firstErr == nil {
-				firstErr = err
-			}
-			continue
-		}
-		fmt.Printf("Sent cancelation signal for task %s\n", id)
-	}
-	return firstErr
-}
+func taskCancel(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-func taskInspect(cmd *cobra.Command, args []string) error {
-	qname, err := cmd.Flags().GetString("queue")
-	if err != nil {
-		return err
-	}
-	id, err := cmd.Flags().GetString("id")
-	if err != nil {
-		return err
-	}
+func taskInspect(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-	i := createInspector()
-	info, err := i.GetTaskInfo(qname, id)
-	if err != nil {
-		return fmt.Errorf("could not get task info: %v", err)
-	}
-	printTaskInfo(info)
-	return nil
-}
+func printTaskInfo(info *asynq.TaskInfo) { _ = "STUB: not implemented"; return }
 
-func printTaskInfo(info *asynq.TaskInfo) {
-	bold := color.New(color.Bold)
-	bold.Println("Task Info")
-	fmt.Printf("Queue:   %s\n", info.Queue)
-	fmt.Printf("ID:      %s\n", info.ID)
-	fmt.Printf("Type:    %s\n", info.Type)
-	fmt.Printf("State:   %v\n", info.State)
-	fmt.Printf("Retried: %d/%d\n", info.Retried, info.MaxRetry)
-	fmt.Println()
-	fmt.Printf("Next process time: %s\n", formatNextProcessAt(info.NextProcessAt))
-	if len(info.LastErr) != 0 {
-		fmt.Println()
-		bold.Println("Last Failure")
-		fmt.Printf("Failed at:     %s\n", formatPastTime(info.LastFailedAt))
-		fmt.Printf("Error message: %s\n", info.LastErr)
-	}
-}
+func formatNextProcessAt(processAt time.Time) string { _ = "STUB: not implemented"; return "" }
 
-func formatNextProcessAt(processAt time.Time) string {
-	if processAt.IsZero() || processAt.Unix() == 0 {
-		return "n/a"
-	}
-	if processAt.Before(time.Now()) {
-		return "now"
-	}
-	return fmt.Sprintf("%s (in %v)", processAt.Format(time.UnixDate), processAt.Sub(time.Now()).Round(time.Second))
-}
+func formatPastTime(t time.Time) string { _ = "STUB: not implemented"; return "" }
 
-// formatPastTime takes t which is time in the past and returns a user-friendly string.
-func formatPastTime(t time.Time) string {
-	if t.IsZero() || t.Unix() == 0 {
-		return ""
-	}
-	return t.Format(time.UnixDate)
-}
+func taskArchive(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-func taskArchive(cmd *cobra.Command, args []string) error {
-	qname, err := cmd.Flags().GetString("queue")
-	if err != nil {
-		return err
-	}
-	id, err := cmd.Flags().GetString("id")
-	if err != nil {
-		return err
-	}
+func taskDelete(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-	i := createInspector()
-	err = i.ArchiveTask(qname, id)
-	if err != nil {
-		return fmt.Errorf("could not archive task: %v", err)
-	}
-	fmt.Println("task archived")
-	return nil
-}
+func taskRun(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-func taskDelete(cmd *cobra.Command, args []string) error {
-	qname, err := cmd.Flags().GetString("queue")
-	if err != nil {
-		return err
-	}
-	id, err := cmd.Flags().GetString("id")
-	if err != nil {
-		return err
-	}
+func taskEnqueue(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-	i := createInspector()
-	err = i.DeleteTask(qname, id)
-	if err != nil {
-		return fmt.Errorf("could not delete task: %v", err)
-	}
-	fmt.Println("task deleted")
-	return nil
-}
+func taskArchiveAll(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-func taskRun(cmd *cobra.Command, args []string) error {
-	qname, err := cmd.Flags().GetString("queue")
-	if err != nil {
-		return err
-	}
-	id, err := cmd.Flags().GetString("id")
-	if err != nil {
-		return err
-	}
+func taskDeleteAll(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
 
-	i := createInspector()
-	err = i.RunTask(qname, id)
-	if err != nil {
-		return fmt.Errorf("could not run task: %v", err)
-	}
-	fmt.Println("task is now pending")
-	return nil
-}
-
-func taskEnqueue(cmd *cobra.Command, args []string) error {
-	typeName, err := cmd.Flags().GetString("type_name")
-	if err != nil {
-		return err
-	}
-
-	payload, err := cmd.Flags().GetString("payload")
-	if err != nil {
-		return err
-	}
-
-	// For all of the optional flags, we need to explicitly check whether they were set or
-	// not; for consistency we want to use the defaults set in composeOptions() rather than
-	// the ones in the flag definitions.
-	opts := []asynq.Option{}
-	if cmd.Flags().Changed("retry") {
-		retry, err := cmd.Flags().GetInt("retry")
-		if err != nil {
-			return err
-		}
-		opts = append(opts, asynq.MaxRetry(retry))
-	}
-
-	if cmd.Flags().Changed("queue") {
-		queue, err := cmd.Flags().GetString("queue")
-		if err != nil {
-			return err
-		}
-		opts = append(opts, asynq.Queue(queue))
-	}
-
-	if cmd.Flags().Changed("id") {
-		id, err := cmd.Flags().GetString("id")
-		if err != nil {
-			return err
-		}
-		opts = append(opts, asynq.TaskID(id))
-	}
-
-	if cmd.Flags().Changed("timeout") {
-		d, err := getDuration(cmd, "timeout")
-		if err != nil {
-			return err
-		}
-		opts = append(opts, asynq.Timeout(d))
-	}
-
-	if cmd.Flags().Changed("deadline") {
-		t, err := getTime(cmd, "deadline")
-		if err != nil {
-			return err
-		}
-		opts = append(opts, asynq.Deadline(t))
-	}
-
-	if cmd.Flags().Changed("unique") {
-		d, err := getDuration(cmd, "unique")
-		if err != nil {
-			return err
-		}
-		opts = append(opts, asynq.Unique(d))
-	}
-
-	if cmd.Flags().Changed("process_at") {
-		t, err := getTime(cmd, "process_at")
-		if err != nil {
-			return err
-		}
-		opts = append(opts, asynq.ProcessAt(t))
-	}
-
-	if cmd.Flags().Changed("process_in") {
-		d, err := getDuration(cmd, "process_in")
-		if err != nil {
-			return err
-		}
-		opts = append(opts, asynq.ProcessIn(d))
-	}
-
-	if cmd.Flags().Changed("retention") {
-		d, err := getDuration(cmd, "retention")
-		if err != nil {
-			return err
-		}
-		opts = append(opts, asynq.Retention(d))
-	}
-
-	if cmd.Flags().Changed("group") {
-		group, err := cmd.Flags().GetString("group")
-		if err != nil {
-			return err
-		}
-		opts = append(opts, asynq.Group(group))
-	}
-
-	c := createClient()
-	task := asynq.NewTask(typeName, []byte(payload), opts...)
-
-	taskInfo, err := c.Enqueue(task)
-	if err != nil {
-		return fmt.Errorf("could not enqueue task: %v", err)
-	}
-
-	fmt.Printf("Enqueued task %s to queue %s\n", taskInfo.ID, taskInfo.Queue)
-	return nil
-}
-
-func taskArchiveAll(cmd *cobra.Command, args []string) error {
-	qname, err := cmd.Flags().GetString("queue")
-	if err != nil {
-		return err
-	}
-	state, err := cmd.Flags().GetString("state")
-	if err != nil {
-		return err
-	}
-
-	i := createInspector()
-	var n int
-	switch state {
-	case "pending":
-		n, err = i.ArchiveAllPendingTasks(qname)
-	case "scheduled":
-		n, err = i.ArchiveAllScheduledTasks(qname)
-	case "retry":
-		n, err = i.ArchiveAllRetryTasks(qname)
-	case "aggregating":
-		group, err := cmd.Flags().GetString("group")
-		if err != nil {
-			return err
-		}
-		if group == "" {
-			return fmt.Errorf("flag --group is required for aggregating tasks")
-		}
-		n, err = i.ArchiveAllAggregatingTasks(qname, group)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("%d tasks archived\n", n)
-		return nil
-	default:
-		return fmt.Errorf("unsupported state %q", state)
-	}
-	if err != nil {
-		return err
-	}
-	fmt.Printf("%d tasks archived\n", n)
-	return nil
-}
-
-func taskDeleteAll(cmd *cobra.Command, args []string) error {
-	qname, err := cmd.Flags().GetString("queue")
-	if err != nil {
-		return err
-	}
-	state, err := cmd.Flags().GetString("state")
-	if err != nil {
-		return err
-	}
-
-	i := createInspector()
-	var n int
-	switch state {
-	case "pending":
-		n, err = i.DeleteAllPendingTasks(qname)
-	case "scheduled":
-		n, err = i.DeleteAllScheduledTasks(qname)
-	case "retry":
-		n, err = i.DeleteAllRetryTasks(qname)
-	case "archived":
-		n, err = i.DeleteAllArchivedTasks(qname)
-	case "completed":
-		n, err = i.DeleteAllCompletedTasks(qname)
-	case "aggregating":
-		group, err := cmd.Flags().GetString("group")
-		if err != nil {
-			return err
-		}
-		if group == "" {
-			return fmt.Errorf("flag --group is required for aggregating tasks")
-		}
-		n, err = i.DeleteAllAggregatingTasks(qname, group)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("%d tasks deleted\n", n)
-		return nil
-	default:
-		return fmt.Errorf("unsupported state %q", state)
-	}
-	if err != nil {
-		return err
-	}
-	fmt.Printf("%d tasks deleted\n", n)
-	return nil
-}
-
-func taskRunAll(cmd *cobra.Command, args []string) error {
-	qname, err := cmd.Flags().GetString("queue")
-	if err != nil {
-		return err
-	}
-	state, err := cmd.Flags().GetString("state")
-	if err != nil {
-		return err
-	}
-
-	i := createInspector()
-	var n int
-	switch state {
-	case "scheduled":
-		n, err = i.RunAllScheduledTasks(qname)
-	case "retry":
-		n, err = i.RunAllRetryTasks(qname)
-	case "archived":
-		n, err = i.RunAllArchivedTasks(qname)
-	case "aggregating":
-		group, err := cmd.Flags().GetString("group")
-		if err != nil {
-			return err
-		}
-		if group == "" {
-			return fmt.Errorf("flag --group is required for aggregating tasks")
-		}
-		n, err = i.RunAllAggregatingTasks(qname, group)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("%d tasks are now pending\n", n)
-		return nil
-	default:
-		return fmt.Errorf("unsupported state %q", state)
-	}
-	if err != nil {
-		return err
-	}
-	fmt.Printf("%d tasks are now pending\n", n)
-	return nil
-}
+func taskRunAll(cmd *cobra.Command, args []string) error { _ = "STUB: not implemented"; return nil }
